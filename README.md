@@ -1,25 +1,126 @@
 # vulnerable_crate
 
 This crate is intended for testing purposes only, and uses vulnerable dependencies on purpose.
+Its goal is to allow checking and comparing outputs of various auditing tools
+able to work on Rust sources or binaries.
 
-## Testing
+## Vulnerabilities
 
-To check the current output in the tooling using advisories from RustSec (or imported from RustSec at some point),
-read the following steps.
+This crate includes different cases in its dependencies:
 
-It provides a library and a binary to allow for testing the binary files too.
+* An `informational = "notice"` [advisory](https://rustsec.org/advisories/RUSTSEC-2022-0058.html)
+* An `informational = "unsound"` [advisory](https://rustsec.org/advisories/RUSTSEC-2023-0047.html)
+* An `informational = "unmaintained"` [advisory](https://rustsec.org/advisories/RUSTSEC-2023-0040.html)
+* A non-informational [advisory](https://rustsec.org/advisories/RUSTSEC-2022-0083.html)
+* A withdrawn `informational = "unmaintained"` [advisory](https://rustsec.org/advisories/RUSTSEC-2021-0147.html)
 
-## Source audit
+## Audit outputs
+
+Note: For binary audits mentioned below, the binary needs to be built with:
+
+```shell
+cargo install cargo-auditable
+# to audit production code
+cargo auditable build --release
+```
 
 ### cargo-deny
 
+Informational advisories are considered as warnings by default, and non-informational advisories are treated as errors.
+Users can pass `--deny/--allow/--warn` flags to change the behavior on specific advisory types..
+
+Note: notice advisories appear as `warning[notice]` (and not as a "note" output type that also exists in `cargo-deny`).
+
 ```shell
-cargo install cargo-deny
+$ cargo install cargo-deny
 # Ignore other checks
-cargo deny check advisories
+$ cargo deny check advisories
+warning[unsound]: impl `FromMdbValue` for bool is unsound
+   ┌─ /home/amousset/projects/vulnerable_crate/Cargo.lock:40:1
+   │
+40 │ lmdb-rs 0.7.6 registry+https://github.com/rust-lang/crates.io-index
+   │ ------------------------------------------------------------------- unsound advisory detected
+   │
+   = ID: RUSTSEC-2023-0047
+   = Advisory: https://rustsec.org/advisories/RUSTSEC-2023-0047
+   = The implementation of `FromMdbValue` have several unsoundness issues. First of all, it allows to reinterpret arbitrary bytes as a bool and could make undefined behavior happen with safe function. Secondly, it allows transmuting pointer without taking memory layout into consideration. The details of reproducing the bug were included in url above.
+   = Announcement: https://github.com/vhbit/lmdb-rs/issues/67
+   = Solution: No safe upgrade is available!
+   = lmdb-rs v0.7.6
+     └── vulnerable_crate v0.1.0
+
+warning[unmaintained]: `users` crate is unmaintained
+   ┌─ /home/amousset/projects/vulnerable_crate/Cargo.lock:77:1
+   │
+77 │ users 0.11.0 registry+https://github.com/rust-lang/crates.io-index
+   │ ------------------------------------------------------------------ unmaintained advisory detected
+   │
+   = ID: RUSTSEC-2023-0040
+   = Advisory: https://rustsec.org/advisories/RUSTSEC-2023-0040
+   = The `users` crate hasn't seen any action since 2020-10-08. The developer seems [MIA] since.
+     
+     ## Recommended alternatives
+     - [`sysinfo`]
+     
+     [MIA]: https://github.com/ogham/rust-users/issues/54
+     [`sysinfo`]: https://crates.io/crates/sysinfo
+   = Announcement: https://github.com/ogham/rust-users/issues/54
+   = Solution: No safe upgrade is available!
+   = users v0.11.0
+     └── vulnerable_crate v0.1.0
+
+warning[notice]: Library exclusively intended to inject UB into safe Rust.
+   ┌─ /home/amousset/projects/vulnerable_crate/Cargo.lock:35:1
+   │
+35 │ inconceivable 0.9.0 registry+https://github.com/rust-lang/crates.io-index
+   │ ------------------------------------------------------------------------- notice advisory detected
+   │
+   = ID: RUSTSEC-2022-0058
+   = Advisory: https://rustsec.org/advisories/RUSTSEC-2022-0058
+   = Quoting from the crate description:
+     
+     > This crate is created purely to inject undefined behavior into stable, safe rust.
+     
+     Specifically, the `inconceivable!` macro is insta-UB if the `ub_inconceivable` feature is enabled by *any* reverse dependency.
+     The value this adds is questionable, and hides `unsafe` code from naive analysis.
+   = Announcement: https://crates.io/crates/inconceivable
+   = Solution: No safe upgrade is available!
+   = inconceivable v0.9.0
+     └── vulnerable_crate v0.1.0
+
+error[vulnerability]: evm incorrect state transition
+   ┌─ /home/amousset/projects/vulnerable_crate/Cargo.lock:20:1
+   │
+20 │ evm 0.35.0 registry+https://github.com/rust-lang/crates.io-index
+   │ ---------------------------------------------------------------- security vulnerability detected
+   │
+   = ID: RUSTSEC-2022-0083
+   = Advisory: https://rustsec.org/advisories/RUSTSEC-2022-0083
+   = SputnikVM, also called evm, is a Rust implementation of Ethereum Virtual Machine.
+     
+     A custom stateful precompile can use the `is_static` parameter to determine if
+     the call is executed in a static context (via `STATICCALL`), and thus decide
+     if stateful operations should be done.
+     
+     Prior to version 0.36.0, the passed `is_static` parameter was incorrect -- it
+     was only set to `true` if the call came from a direct `STATICCALL` opcode.
+     
+     However, once a static call context is entered, it should stay static. The issue
+     only impacts custom precompiles that actually uses `is_static`.
+     
+     For those affected, the issue can lead to possible incorrect state transitions.
+   = Announcement: https://github.com/rust-blockchain/evm/pull/133
+   = Solution: Upgrade to >=0.36.0 (try `cargo update -p evm`)
+   = evm v0.35.0
+     └── vulnerable_crate v0.1.0
+
+advisories FAILED
 ```
 
 ### cargo-audit
+
+Informational advisories are considered as warnings by default, and non-informational advisories are treated as errors.
+Users can pass a `--deny` flag to treat some warnings as errors.
 
 ```shell
 $ cargo install cargo-audit
@@ -78,7 +179,11 @@ error: 1 vulnerability found!
 warning: 3 allowed warnings found
 ```
 
-Note: This is the default behavior, users can pass a `--deny` flag to consider some warnings as errors.
+The binary file audit returns the exact same output.
+
+```shell
+cargo audit bin target/release/vulnerable_crate
+```
 
 ### osv-scanner
 
@@ -99,7 +204,6 @@ Scanned /home/amousset/projects/vulnerable_crate/Cargo.lock file and found 87 pa
 │ https://osv.dev/RUSTSEC-2023-0047   │      │           │               │         │            │
 │ https://osv.dev/RUSTSEC-2023-0040   │      │ crates.io │ users         │ 0.11.0  │ Cargo.lock │
 ╰─────────────────────────────────────┴──────┴───────────┴───────────────┴─────────┴────────────╯
-
 ```
 
 ### GitHub Advisories / Dependabot / etc.
@@ -110,25 +214,60 @@ It looks like:
   * e.g.: https://github.com/advisories/GHSA-hhc4-47rh-cr34
 * `informational = "unsound"` advisories are imported
   * e.g.: https://github.com/advisories/GHSA-f9g6-fp84-fv92
-* `informational = "unmaintaine" / "notice"` are not imported, hence not reported as vulnerabilities
+* `informational = "unmaintained" / "notice"` are not imported (and hence not reported as vulnerabilities)
 
-## Binary audit
+Which results in:
 
-Build with:
+* Reported alerts on the repository:
+
+![img.png](img.png)
+
+* A pull request from _dependabot_: https://github.com/amousset/vulnerable_crate/pull/1
+
+### Trivy
+
+This shows the same output as the GitHub tooling, i.e., only vulnerabilities and unsoundness advisories.
+
+Note: This is because their OSV import [only imports GHSA advisories now](https://github.com/aquasecurity/trivy-db/blob/15ce04b6527c7c14bee72d0bd100653a8450bf3a/pkg/vulnsrc/osv/osv.go#L38).
 
 ```shell
-cargo install cargo-auditable
-cargo auditable build --release
+$ trivy fs .
+2023-08-19T16:31:38.396+0200	INFO	Vulnerability scanning is enabled
+[...]
+2023-08-19T16:31:38.456+0200	INFO	Detecting cargo vulnerabilities...
+
+Cargo.lock (cargo)
+
+Total: 2 (UNKNOWN: 0, LOW: 0, MEDIUM: 2, HIGH: 0, CRITICAL: 0)
+
+┌─────────┬─────────────────────┬──────────┬──────────┬───────────────────┬───────────────┬───────────────────────────────────────────────────┐
+│ Library │    Vulnerability    │ Severity │  Status  │ Installed Version │ Fixed Version │                       Title                       │
+├─────────┼─────────────────────┼──────────┼──────────┼───────────────────┼───────────────┼───────────────────────────────────────────────────┤
+│ evm     │ CVE-2022-39354      │ MEDIUM   │ fixed    │ 0.35.0            │ 0.36.0        │ Incorrect is_static parameter for custom stateful │
+│         │                     │          │          │                   │               │ precompiles in SputnikVM (evm)                    │
+│         │                     │          │          │                   │               │ https://avd.aquasec.com/nvd/cve-2022-39354        │
+├─────────┼─────────────────────┤          ├──────────┼───────────────────┼───────────────┼───────────────────────────────────────────────────┤
+│ lmdb-rs │ GHSA-f9g6-fp84-fv92 │          │ affected │ 0.7.6             │               │ impl `FromMdbValue` for bool is unsound           │
+│         │                     │          │          │                   │               │ https://github.com/advisories/GHSA-f9g6-fp84-fv92 │
+└─────────┴─────────────────────┴──────────┴──────────┴───────────────────┴───────────────┴───────────────────────────────────────────────────┘
 ```
 
-### cargo-audit
+### Grype
 
-```asciidoc
-cargo audit bin target/release/vulnerable_crate
+Same as GitHub tooling, plus a false positive on the `ethereum` name, confused with
+a vulnerability in a C++ implementation
+
+```shell
+$ grype .
+ ✔ Vulnerability DB                [no update available]  
+ ✔ Indexed file system                                                                                                                                                                     .
+ ✔ Cataloged packages              [87 packages]  
+ ✔ Scanned for vulnerabilities     [3 vulnerabilities]  
+   ├── 1 critical, 0 high, 2 medium, 0 low, 0 negligible
+   └── 1 fixed
+[0000]  WARN no explicit name and version provided for directory source, deriving artifact ID from the given path (which is not ideal) from-lib=syft
+NAME      INSTALLED  FIXED-IN  TYPE        VULNERABILITY        SEVERITY 
+ethereum  0.12.0               rust-crate  CVE-2017-14451       Critical  
+evm       0.35.0     0.36.0    rust-crate  GHSA-hhc4-47rh-cr34  Medium    
+lmdb-rs   0.7.6                rust-crate  GHSA-f9g6-fp84-fv92  Medium
 ```
-
-Same output as when run on the sources.
-
-### osv-scanner
-
-### trivy
