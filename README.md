@@ -27,7 +27,7 @@ cargo auditable build --release
 ### cargo-deny
 
 Informational advisories are considered as warnings by default, and non-informational advisories are treated as errors.
-Users can pass `--deny/--allow/--warn` flags to change the behavior on specific advisory types..
+Users can pass `--deny/--allow/--warn` flags to change the behavior on specific advisory types.
 
 Note: notice advisories appear as `warning[notice]` (and not as a "note" output type that also exists in `cargo-deny`).
 
@@ -43,7 +43,7 @@ warning[unsound]: impl `FromMdbValue` for bool is unsound
    │
    = ID: RUSTSEC-2023-0047
    = Advisory: https://rustsec.org/advisories/RUSTSEC-2023-0047
-   = The implementation of `FromMdbValue` have several unsoundness issues. First of all, it allows to reinterpret arbitrary bytes as a bool and could make undefined behavior happen with safe function. Secondly, it allows transmuting pointer without taking memory layout into consideration. The details of reproducing the bug were included in url above.
+   = The implementation of `FromMdbValue` have [...]
    = Announcement: https://github.com/vhbit/lmdb-rs/issues/67
    = Solution: No safe upgrade is available!
    = lmdb-rs v0.7.6
@@ -57,13 +57,7 @@ warning[unmaintained]: `users` crate is unmaintained
    │
    = ID: RUSTSEC-2023-0040
    = Advisory: https://rustsec.org/advisories/RUSTSEC-2023-0040
-   = The `users` crate hasn't seen any action since 2020-10-08. The developer seems [MIA] since.
-     
-     ## Recommended alternatives
-     - [`sysinfo`]
-     
-     [MIA]: https://github.com/ogham/rust-users/issues/54
-     [`sysinfo`]: https://crates.io/crates/sysinfo
+   = The `users` crate hasn't seen any [...]
    = Announcement: https://github.com/ogham/rust-users/issues/54
    = Solution: No safe upgrade is available!
    = users v0.11.0
@@ -77,12 +71,7 @@ warning[notice]: Library exclusively intended to inject UB into safe Rust.
    │
    = ID: RUSTSEC-2022-0058
    = Advisory: https://rustsec.org/advisories/RUSTSEC-2022-0058
-   = Quoting from the crate description:
-     
-     > This crate is created purely to inject undefined behavior into stable, safe rust.
-     
-     Specifically, the `inconceivable!` macro is insta-UB if the `ub_inconceivable` feature is enabled by *any* reverse dependency.
-     The value this adds is questionable, and hides `unsafe` code from naive analysis.
+   = Quoting from the crate description [...]
    = Announcement: https://crates.io/crates/inconceivable
    = Solution: No safe upgrade is available!
    = inconceivable v0.9.0
@@ -96,19 +85,7 @@ error[vulnerability]: evm incorrect state transition
    │
    = ID: RUSTSEC-2022-0083
    = Advisory: https://rustsec.org/advisories/RUSTSEC-2022-0083
-   = SputnikVM, also called evm, is a Rust implementation of Ethereum Virtual Machine.
-     
-     A custom stateful precompile can use the `is_static` parameter to determine if
-     the call is executed in a static context (via `STATICCALL`), and thus decide
-     if stateful operations should be done.
-     
-     Prior to version 0.36.0, the passed `is_static` parameter was incorrect -- it
-     was only set to `true` if the call came from a direct `STATICCALL` opcode.
-     
-     However, once a static call context is entered, it should stay static. The issue
-     only impacts custom precompiles that actually uses `is_static`.
-     
-     For those affected, the issue can lead to possible incorrect state transitions.
+   = SputnikVM, also called evm, [...]
    = Announcement: https://github.com/rust-blockchain/evm/pull/133
    = Solution: Upgrade to >=0.36.0 (try `cargo update -p evm`)
    = evm v0.35.0
