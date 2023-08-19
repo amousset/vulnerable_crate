@@ -19,7 +19,7 @@ users = "0.11.0"
 lmdb-rs = "0.7.1"
 # https://rustsec.org/advisories/RUSTSEC-2022-0083.html
 # high score, crypto-failure
-evm = "0.35.0"
+evm = "0.36.0"
 # https://rustsec.org/advisories/RUSTSEC-2021-0147.html
 # withdrawn unmaintained advisory
 daemonize = "0.5.0"
