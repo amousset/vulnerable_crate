@@ -1,0 +1,19 @@
+[package]
+name = "vulnerable_crate"
+description = "A test crate including different kind of vulnerable dependencies"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# https://rustsec.org/advisories/RUSTSEC-2022-0058.html
+# informational = "notice
+inconceivable = "*"
+# https://rustsec.org/advisories/RUSTSEC-2023-0049.html
+# informational = "unmaintained"
+users = "*"
+# https://rustsec.org/advisories/RUSTSEC-2023-0047.html
+# informational = "unsound"
+lmdb-rs = "*"
