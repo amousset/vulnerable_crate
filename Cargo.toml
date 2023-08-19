@@ -10,10 +10,16 @@ license = "MIT"
 [dependencies]
 # https://rustsec.org/advisories/RUSTSEC-2022-0058.html
 # informational = "notice
-inconceivable = "*"
-# https://rustsec.org/advisories/RUSTSEC-2023-0049.html
+inconceivable = "0.9.0"
+# https://rustsec.org/advisories/RUSTSEC-2023-0040.html
 # informational = "unmaintained"
-users = "*"
+users = "0.11.0"
 # https://rustsec.org/advisories/RUSTSEC-2023-0047.html
 # informational = "unsound"
-lmdb-rs = "*"
+lmdb-rs = "0.7.1"
+# https://rustsec.org/advisories/RUSTSEC-2022-0083.html
+# high score, crypto-failure
+evm = "0.35.0"
+# https://rustsec.org/advisories/RUSTSEC-2021-0147.html
+# withdrawn unmaintained advisory
+daemonize = "0.5.0"
